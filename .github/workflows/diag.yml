@@ -11,8 +11,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
-      - run: pip install playwright && python -m playwright install --with-deps chromium
-      - run: python diag/probe.py || true
+      - run: ONCE=1 python watcher.py || true
+      - run: cp once_report.txt diag/ || true
       - run: |
           git config user.name bot && git config user.email bot@users.noreply.github.com
           git add -f diag && git commit -m "diag results" && git push origin HEAD:diag-results --force

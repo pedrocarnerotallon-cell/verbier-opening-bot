@@ -1,0 +1,39 @@
+<button class="js-activity-ticket-config__open btn btn-primary microinteractions__morphing-button-wrapper js-microinteractions__morphing-button-wrapper w-100 box-button--is-fixed-mobile d-block d-md-none  js-scroll-functions">
+            <span class="microinteractions__morphing-button-background microinteractions__morphing-button-background--wide js-microinteractions__morphing-button-background ">
+                                    <span class="icon icon-ticket btn__icon-big me-2 js-microinteractions__morphing-button-icon microinteractions__morphing-button-icon" aria-label="Ticket"></span>
+                                <span class="microinteractions__morphing-button-text js-microinteractions__morphing-button-text">Book now</span>
+            </span>
+        </button>
+
+<button class="js-activity-ticket-config__open btn btn-primary microinteractions__morphing-button-wrapper js-microinteractions__morphing-button-wrapper w-100 d-md-none">
+            <span class="microinteractions__morphing-button-background microinteractions__morphing-button-background--wide js-microinteractions__morphing-button-background ">
+                                    <span class="icon icon-ticket btn__icon-big me-2 js-microinteractions__morphing-button-icon microinteractions__morphing-button-icon" aria-label="Ticket"></span>
+                                <span class="microinteractions__morphing-button-text js-microinteractions__morphing-button-text">Book now</span>
+            </span>
+        </button>
+
+<button class="js-activity-ticket-config__open btn btn-primary microinteractions__morphing-button-wrapper js-microinteractions__morphing-button-wrapper w-100 d-none d-md-grid">
+            <span class="microinteractions__morphing-button-background microinteractions__morphing-button-background--wide js-microinteractions__morphing-button-background ">
+                                    <span class="icon icon-ticket btn__icon-big me-2 js-microinteractions__morphing-button-icon microinteractions__morphing-button-icon" aria-label="Ticket"></span>
+                                <span class="microinteractions__morphing-button-text js-microinteractions__morphing-button-text">Book now</span>
+            </span>
+        </button>
+
+<button class="js-activity-ticket-config__open btn btn-primary microinteractions__morphing-button-wrapper js-microinteractions__morphing-button-wrapper w-100 d-none d-md-grid">
+            <span class="microinteractions__morphing-button-background microinteractions__morphing-button-background--wide js-microinteractions__morphing-button-background ">
+                                    <span class="icon icon-ticket btn__icon-big me-2 js-microinteractions__morphing-button-icon microinteractions__morphing-button-icon" aria-label="Ticket"></span>
+                                <span class="microinteractions__morphing-button-text js-microinteractions__morphing-button-text">Book now</span>
+            </span>
+        </button>
+
+<button class="js-activity-ticket-config__open btn btn-primary microinteractions__morphing-button-wrapper js-microinteractions__morphing-button-wrapper booking-teaser__btn mb-0 w-100 ">
+        <span class="microinteractions__morphing-button-background microinteractions__morphing-button-background--wide js-microinteractions__morphing-button-background">
+                        <span class="microinteractions__morphing-button-text js-microinteractions__morphing-button-text">Book now</span>
+        </span>
+    </button>
+
+<button class="js-activity-ticket-config__open btn btn-primary microinteractions__morphing-button-wrapper js-microinteractions__morphing-button-wrapper booking-teaser__btn mb-0 w-100 ">
+        <span class="microinteractions__morphing-button-background microinteractions__morphing-button-background--wide js-microinteractions__morphing-button-background">
+                        <span class="microinteractions__morphing-button-text js-microinteractions__morphing-button-text">Book now</span>
+        </span>
+    </button>
