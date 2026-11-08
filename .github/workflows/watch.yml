@@ -1,0 +1,31 @@
+name: Verbier Opening Session watcher
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # relanza el bot; si ya hay uno corriendo, espera en cola
+  workflow_dispatch:
+    inputs:
+      test_notify:
+        description: "Mandar notificación de prueba al arrancar"
+        type: boolean
+        default: true
+
+concurrency:
+  group: verbier-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run watcher
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          INTERVAL_SECONDS: "120"
+          TEST_NOTIFY: ${{ github.event.inputs.test_notify == 'true' && '1' || '0' }}
+        run: python watcher.py
