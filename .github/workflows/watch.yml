@@ -2,7 +2,7 @@ name: Verbier Opening Session watcher
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # relanza el bot; si ya hay uno corriendo, espera en cola
+    - cron: "*/30 * * * *"   # relanza el bot cada 30 min (sustituye al anterior)
   push:
     branches: [main]
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
 
 concurrency:
   group: verbier-watch
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   watch:
@@ -29,5 +29,5 @@ jobs:
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC || 'pedro-verbier-208b0367' }}
           INTERVAL_SECONDS: "120"
-          TEST_NOTIFY: ${{ (github.event_name == 'push' || github.event.inputs.test_notify == 'true') && '1' || '0' }}
+          TEST_NOTIFY: ${{ github.event.inputs.test_notify == 'true' && '1' || '0' }}
         run: python watcher.py

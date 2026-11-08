@@ -34,7 +34,7 @@ SOLD_OUT = [
     "not bookable",
 ]
 DAY6 = re.compile(r"0?6\.12\.(20)?26|6(th)? december 2026|december 6(th)?,? 2026|06/12/(20)?26")
-STATUS_WORDS = re.compile(r"sold out|bookable|available|quota|limited", re.I)
+STATUS_WORDS = re.compile(r"sold out|not bookable|quota", re.I)
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
 
 
@@ -103,7 +103,7 @@ def main():
                     if old["sold_out"] and not cur["sold_out"]:
                         notify(f"🎅 ¡HAN SALIDO ENTRADAS! ({name})", "El aviso de agotado ha desaparecido. ¡Corre!", url, True)
                     elif cur["status"] != old["status"]:
-                        notify(f"Cambio en {name}", cur["status"][:300] or "(sin texto de estado)", url)
+                        notify(f"Sigue agotado · cambió el aviso ({name})", (cur["status"][:300] or "(sin aviso)") + "\nProbablemente ha salido y se ha agotado una tanda.", url)
                 if cur["day6"] and not (old or {}).get("day6"):
                     notify(f"📅 Aparece el 6 de diciembre ({name})", "Revisa la página.", url, True)
                 print(time.strftime("%H:%M:%S"), name, "AGOTADO" if cur["sold_out"] else "DISPONIBLE?", "|", cur["status"][:120], flush=True)
