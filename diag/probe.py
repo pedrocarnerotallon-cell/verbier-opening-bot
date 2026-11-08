@@ -18,14 +18,30 @@ async def main():
         pg.on("response", on_resp)
         await pg.goto(URL, wait_until="networkidle", timeout=60000)
         await pg.screenshot(path="diag/1_page.png")
-        for sel in ["button:has-text('Accept')", "button:has-text('accept')", "#onetrust-accept-btn-handler", "button:has-text('OK')"]:
+        for sel in ["text=/decline all/i", "text=/accept all/i"]:
             try:
                 await pg.click(sel, timeout=2000); break
             except Exception:
                 pass
         reqs.append({"marker": "---- CLICK BOOK NOW ----"})
         clicked = False
-        for sel in ["text=/book now/i", "a:has-text('Book now')", "button:has-text('Book now')"]:
+        await pg.wait_for_timeout(1500)
+        els = pg.locator("text=/book now/i")
+        n = await els.count()
+        html_dump = []
+        for i in range(n):
+            try:
+                html_dump.append(await els.nth(i).evaluate("e => (e.closest('a,button')||e).outerHTML.slice(0,800)"))
+            except Exception as e:
+                html_dump.append(str(e))
+        open("diag/booknow_html.txt","w").write("\n\n".join(html_dump))
+        for i in range(n):
+            try:
+                if await els.nth(i).is_visible():
+                    await els.nth(i).click(timeout=5000); clicked = True; break
+            except Exception as e:
+                print("click fail", i, e)
+        for sel in ([] if clicked else ["text=/book now/i"]):
             try:
                 await pg.locator(sel).first.click(timeout=5000); clicked = True; break
             except Exception as e:
