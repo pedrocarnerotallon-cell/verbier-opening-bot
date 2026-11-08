@@ -1,70 +1,61 @@
 """
-Vigila las entradas de la Opening Session de Verbier (forfait a CHF 5 yendo de San Nicolás)
-y manda una notificación al móvil (ntfy) cuando cambie algo.
+Vigila las plazas de la Opening Session de Verbier (forfait a CHF 5 yendo de San Nicolás)
+y manda una notificación al móvil (ntfy) en cuanto haya plazas libres.
 
-Avisa cuando:
-  - Una de las páginas deja de mostrar el aviso de "agotado"  -> ¡posibles entradas!
-  - Cambia el texto de disponibilidad (p. ej. nueva tanda que se agota)
-  - Aparece la fecha 6 de diciembre en alguna página
-  - Aparece un producto nuevo de "Opening / St. Nicholas" en la tienda
+Usa el mismo dato que carga la web al pulsar "Book now":
+  /en/shop/product/available-dates-times?activity_id=...
+  -> {"availabilityByDate": {"426820-2026-12-05": {"available": 0, "max": 112, ...}}}
 """
-import hashlib
-import html
+import json
 import os
 import re
 import sys
 import time
 import urllib.request
 
-PAGES = {
-    "5 dic · con tren": "https://verbier4vallees.ch/en/online-shop/activities/opening-session-st.nicholas-express_activity_426820",
-    "5 dic · sin tren": "https://verbier4vallees.ch/en/online-shop/activities/opening-session_activity_410650",
+PRODUCTS = {
+    "426820": ("con tren", "https://verbier4vallees.ch/en/online-shop/activities/opening-session-st.nicholas-express_activity_426820"),
+    "410650": ("sin tren", "https://verbier4vallees.ch/en/online-shop/activities/opening-session_activity_410650"),
 }
+API = "https://verbier4vallees.ch/en/shop/product/available-dates-times?activity_id={}"
 SHOP_LIST = "https://verbier4vallees.ch/en/online-shop/activities"
 
 NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")
-INTERVAL = int(os.environ.get("INTERVAL_SECONDS", "120"))      # cada cuánto revisa
-RUN_FOR = int(os.environ.get("RUN_FOR_SECONDS", str(5 * 3600 + 45 * 60)))  # cuánto dura cada ejecución
-
-SOLD_OUT = [
-    "quota has been sold out",
-    "tickets for this event are sold out",
-    "are sold out",
-    "currently not bookable",
-    "not bookable",
-]
-DAY6 = re.compile(r"0?6\.12\.(20)?26|6(th)? december 2026|december 6(th)?,? 2026|06/12/(20)?26")
-STATUS_WORDS = re.compile(r"sold out|not bookable|quota", re.I)
+INTERVAL = int(os.environ.get("INTERVAL_SECONDS", "60"))
+RUN_FOR = int(os.environ.get("RUN_FOR_SECONDS", str(5 * 3600 + 45 * 60)))
+ONCE = os.environ.get("ONCE") == "1"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
 
 
-def fetch(url):
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "en"})
-    with urllib.request.urlopen(req, timeout=30) as r:
+def fetch(url, referer=None):
+    headers = {"User-Agent": UA, "Accept-Language": "en", "X-Requested-With": "XMLHttpRequest",
+               "Accept": "application/json, text/javascript, */*; q=0.01"}
+    if referer:
+        headers["Referer"] = referer
+    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as r:
         return r.read().decode("utf-8", errors="replace")
 
 
-def to_text(raw):
-    raw = re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", raw)
-    raw = re.sub(r"(?s)<[^>]+>", "\n", raw)
-    lines = [re.sub(r"\s+", " ", html.unescape(l)).strip() for l in raw.split("\n")]
-    return [l for l in lines if l]
-
-
-def analyse(raw):
-    lines = to_text(raw)
-    low = " ".join(lines).lower()
-    status = [l for l in lines if STATUS_WORDS.search(l) and len(l) < 200]
-    return {
-        "sold_out": any(p in low for p in SOLD_OUT),
-        "status": " | ".join(dict.fromkeys(status)),
-        "day6": bool(DAY6.search(low)),
-    }
+def availability(pid):
+    """Devuelve {fecha: (disponibles, max)}"""
+    data = json.loads(fetch(API.format(pid), PRODUCTS[pid][1]))
+    out = {}
+    for v in (data.get("availabilityByDate") or {}).values():
+        out[v.get("date")] = (int(v.get("available") or 0), int(v.get("max") or 0))
+    return out
 
 
 def opening_products(raw):
-    urls = re.findall(r'href="([^"]*_activity_\d+)"', raw)
-    return {u for u in urls if re.search(r"opening|nichol|nicolas|samichlaus", u, re.I)}
+    urls = re.findall(r'href="([^"]*_activity_(\d+))"', raw)
+    return {pid for u, pid in urls if re.search(r"opening|nichol|nicolas|samichlaus", u, re.I)}
+
+
+def nice(d):
+    try:
+        y, m, dd = d.split("-")
+        return f"{int(dd)}/{int(m)}"
+    except Exception:
+        return d
 
 
 def notify(title, msg, url=None, urgent=False):
@@ -75,9 +66,8 @@ def notify(title, msg, url=None, urgent=False):
                "Tags": "rotating_light" if urgent else "information_source"}
     if url:
         headers["Click"] = url
-    req = urllib.request.Request(f"https://ntfy.sh/{NTFY_TOPIC}", data=msg.encode("utf-8"), headers=headers)
     try:
-        urllib.request.urlopen(req, timeout=20)
+        urllib.request.urlopen(urllib.request.Request(f"https://ntfy.sh/{NTFY_TOPIC}", data=msg.encode("utf-8"), headers=headers), timeout=20)
     except Exception as e:
         print("ntfy error:", e, flush=True)
 
@@ -86,42 +76,48 @@ def main():
     if os.environ.get("TEST_NOTIFY") == "1":
         notify("Bot Verbier activo ✅", "Si ves esto, las notificaciones funcionan.")
 
-    prev = {}
-    known_products = None
+    prev = {}            # (pid, fecha) -> disponibles
+    known_pids = set(PRODUCTS)
     fails = 0
+    loops = 0
     start = time.time()
+    report = []
 
     while True:
         try:
-            for name, url in PAGES.items():
-                cur = analyse(fetch(url))
-                old = prev.get(name)
-                if old is None:
-                    if not cur["sold_out"]:
-                        notify(f"🎅 ¡Entradas posibles! ({name})", "No aparece el aviso de agotado. ¡Entra ya!", url, True)
-                else:
-                    if old["sold_out"] and not cur["sold_out"]:
-                        notify(f"🎅 ¡HAN SALIDO ENTRADAS! ({name})", "El aviso de agotado ha desaparecido. ¡Corre!", url, True)
-                    elif cur["status"] != old["status"]:
-                        notify(f"Sigue agotado · cambió el aviso ({name})", (cur["status"][:300] or "(sin aviso)") + "\nProbablemente ha salido y se ha agotado una tanda.", url)
-                if cur["day6"] and not (old or {}).get("day6"):
-                    notify(f"📅 Aparece el 6 de diciembre ({name})", "Revisa la página.", url, True)
-                print(time.strftime("%H:%M:%S"), name, "AGOTADO" if cur["sold_out"] else "DISPONIBLE?", "|", cur["status"][:120], flush=True)
-                prev[name] = cur
+            for pid, (name, url) in list(PRODUCTS.items()):
+                av = availability(pid)
+                for date, (free, mx) in av.items():
+                    key = (pid, date)
+                    old = prev.get(key)
+                    line = f"{time.strftime('%H:%M:%S')} {name} {date}: {free}/{mx} libres"
+                    print(line, flush=True)
+                    report.append(line)
+                    if free > 0 and (old is None or old == 0):
+                        notify(f"🎅 ¡HAY PLAZAS! {nice(date)} · {name}", f"{free} plazas libres de {mx}. ¡Corre a reservar!", url, True)
+                    elif old is None and date not in ("2026-12-05",):
+                        notify(f"📅 Nueva fecha: {nice(date)} · {name}", f"{free}/{mx} plazas.", url, True)
+                    prev[key] = free
 
-            products = opening_products(fetch(SHOP_LIST))
-            if known_products is not None:
-                for u in products - known_products:
-                    full = u if u.startswith("http") else "https://verbier4vallees.ch" + u
-                    notify("🆕 Nuevo producto Opening Session", full, full, True)
-            known_products = products if known_products is None else known_products | products
+            if loops % 10 == 0:  # la lista de productos, cada ~10 min
+                new = opening_products(fetch(SHOP_LIST)) - known_pids
+                for pid in new:
+                    known_pids.add(pid)
+                    u = f"https://verbier4vallees.ch/en/online-shop/activities/x_activity_{pid}"
+                    notify("🆕 Nuevo producto Opening Session", f"activity {pid}", None, True)
+                    PRODUCTS[pid] = (f"nuevo {pid}", u)
             fails = 0
         except Exception as e:
             fails += 1
-            print("Error:", e, flush=True)
+            print("Error:", repr(e), flush=True)
+            report.append(f"Error: {e!r}")
             if fails == 5:
-                notify("⚠️ Bot Verbier: errores", f"No consigo leer la web ({e}). Sigo intentándolo.")
+                notify("⚠️ Bot Verbier: errores", f"No consigo leer la disponibilidad ({e}). Sigo intentándolo.")
 
+        loops += 1
+        if ONCE:
+            open("once_report.txt", "w").write("\n".join(report))
+            break
         if time.time() - start + INTERVAL > RUN_FOR:
             break
         time.sleep(INTERVAL)
