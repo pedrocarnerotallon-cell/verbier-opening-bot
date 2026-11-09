@@ -77,6 +77,7 @@ def main():
         notify("Bot Verbier activo ✅", "Si ves esto, las notificaciones funcionan.")
 
     prev = {}            # (pid, fecha) -> disponibles
+    prev_max = {}        # (pid, fecha) -> plazas totales
     prev_max = {}        # (pid, fecha) -> total de plazas
     known_pids = set(PRODUCTS)
     fails = 0
@@ -101,7 +102,13 @@ def main():
                     old_max = prev_max.get(key)
                     if old_max is not None and mx > old_max and free == 0:
                         notify(f"⏱️ Salió una tanda y ya se agotó · {name}", f"+{mx - old_max} plazas ({old_max}→{mx}) a las {time.strftime('%H:%M')}. Ya no quedan.", url)
+                    if key in prev_max and mx > prev_max[key]:
+                        if free > 0:
+                            notify(f"🎅 Nueva tanda: +{mx - prev_max[key]} plazas · {name}", f"Quedan {free}. ¡Corre!", url, True)
+                        else:
+                            notify(f"Ha salido una tanda (+{mx - prev_max[key]}) · {name}", "Pero ya está agotada. Ahora sabes a qué hora las sacan.", url)
                     prev[key] = free
+                    prev_max[key] = mx
                     prev_max[key] = mx
 
             if loops % 10 == 0:  # la lista de productos, cada ~10 min
