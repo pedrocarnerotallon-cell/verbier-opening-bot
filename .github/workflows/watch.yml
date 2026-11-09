@@ -2,7 +2,7 @@ name: Verbier Opening Session watcher
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # respaldo: si la cadena se rompe, esto la vuelve a arrancar
+    - cron: "*/30 * * * *"   # respaldo por si la cadena se rompe
   push:
     branches: [main]
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
 
 concurrency:
   group: verbier-watch
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -32,12 +32,12 @@ jobs:
       - name: Run watcher
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC || 'pedro-verbier-208b0367' }}
-          INTERVAL_SECONDS: "60"
+          INTERVAL_SECONDS: "30"
           RUN_FOR_SECONDS: "20400"   # 5h40m
           TEST_NOTIFY: ${{ github.event.inputs.test_notify == 'true' && '1' || '0' }}
         run: python watcher.py
       - name: Lanzar la siguiente ejecución
-        if: always()
+        if: ${{ !cancelled() }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run watch.yml --ref main -f test_notify=false

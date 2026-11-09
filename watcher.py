@@ -21,7 +21,7 @@ API = "https://verbier4vallees.ch/en/shop/product/available-dates-times?activity
 SHOP_LIST = "https://verbier4vallees.ch/en/online-shop/activities"
 
 NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")
-INTERVAL = int(os.environ.get("INTERVAL_SECONDS", "60"))
+INTERVAL = int(os.environ.get("INTERVAL_SECONDS", "30"))
 RUN_FOR = int(os.environ.get("RUN_FOR_SECONDS", str(5 * 3600 + 45 * 60)))
 ONCE = os.environ.get("ONCE") == "1"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
@@ -32,7 +32,7 @@ def fetch(url, referer=None):
                "Accept": "application/json, text/javascript, */*; q=0.01"}
     if referer:
         headers["Referer"] = referer
-    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as r:
+    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=15) as r:
         return r.read().decode("utf-8", errors="replace")
 
 
@@ -77,6 +77,7 @@ def main():
         notify("Bot Verbier activo ✅", "Si ves esto, las notificaciones funcionan.")
 
     prev = {}            # (pid, fecha) -> disponibles
+    prev_max = {}        # (pid, fecha) -> total de plazas
     known_pids = set(PRODUCTS)
     fails = 0
     loops = 0
@@ -97,7 +98,11 @@ def main():
                         notify(f"🎅 ¡HAY PLAZAS! {nice(date)} · {name}", f"{free} plazas libres de {mx}. ¡Corre a reservar!", url, True)
                     elif old is None and date not in ("2026-12-05",):
                         notify(f"📅 Nueva fecha: {nice(date)} · {name}", f"{free}/{mx} plazas.", url, True)
+                    old_max = prev_max.get(key)
+                    if old_max is not None and mx > old_max and free == 0:
+                        notify(f"⏱️ Salió una tanda y ya se agotó · {name}", f"+{mx - old_max} plazas ({old_max}→{mx}) a las {time.strftime('%H:%M', time.localtime())} UTC. Ya no quedan.", url)
                     prev[key] = free
+                    prev_max[key] = mx
 
             if loops % 10 == 0:  # la lista de productos, cada ~10 min
                 new = opening_products(fetch(SHOP_LIST)) - known_pids
