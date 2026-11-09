@@ -100,7 +100,7 @@ def main():
                         notify(f"📅 Nueva fecha: {nice(date)} · {name}", f"{free}/{mx} plazas.", url, True)
                     old_max = prev_max.get(key)
                     if old_max is not None and mx > old_max and free == 0:
-                        notify(f"⏱️ Salió una tanda y ya se agotó · {name}", f"+{mx - old_max} plazas ({old_max}→{mx}) a las {time.strftime('%H:%M', time.localtime())} UTC. Ya no quedan.", url)
+                        notify(f"⏱️ Salió una tanda y ya se agotó · {name}", f"+{mx - old_max} plazas ({old_max}→{mx}) a las {time.strftime('%H:%M')}. Ya no quedan.", url)
                     prev[key] = free
                     prev_max[key] = mx
 

@@ -33,6 +33,7 @@ jobs:
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC || 'pedro-verbier-208b0367' }}
           INTERVAL_SECONDS: "30"
+          TZ: Europe/Madrid
           RUN_FOR_SECONDS: "20400"   # 5h40m
           TEST_NOTIFY: ${{ github.event.inputs.test_notify == 'true' && '1' || '0' }}
         run: python watcher.py
