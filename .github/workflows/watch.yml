@@ -31,6 +31,8 @@ jobs:
           python-version: "3.12"
       - name: Run watcher
         env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC || 'pedro-verbier-208b0367' }}
           INTERVAL_SECONDS: "30"
           TZ: Europe/Madrid

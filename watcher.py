@@ -21,6 +21,8 @@ API = "https://verbier4vallees.ch/en/shop/product/available-dates-times?activity
 SHOP_LIST = "https://verbier4vallees.ch/en/online-shop/activities"
 
 NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")
+TG_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
+TG_CHAT = os.environ.get("TELEGRAM_CHAT_ID", "")
 INTERVAL = int(os.environ.get("INTERVAL_SECONDS", "30"))
 RUN_FOR = int(os.environ.get("RUN_FOR_SECONDS", str(5 * 3600 + 45 * 60)))
 ONCE = os.environ.get("ONCE") == "1"
@@ -60,6 +62,14 @@ def nice(d):
 
 def notify(title, msg, url=None, urgent=False):
     print(f"[NOTIFY] {title}: {msg}", flush=True)
+    if TG_TOKEN and TG_CHAT:
+        try:
+            text = f"{title}\n{msg}" + (f"\n{url}" if url else "")
+            body = json.dumps({"chat_id": TG_CHAT, "text": text, "disable_web_page_preview": True}).encode()
+            urllib.request.urlopen(urllib.request.Request(f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage", data=body,
+                                   headers={"Content-Type": "application/json"}), timeout=20)
+        except Exception as e:
+            print("telegram error:", e, flush=True)
     if not NTFY_TOPIC:
         return
     headers = {"Title": title.encode("utf-8"), "Priority": "urgent" if urgent else "default",
@@ -77,6 +87,7 @@ def main():
         notify("Bot Verbier activo ✅", "Si ves esto, las notificaciones funcionan.")
 
     prev = {}            # (pid, fecha) -> disponibles
+    repeats = {}
     prev_max = {}        # (pid, fecha) -> plazas totales
     prev_max = {}        # (pid, fecha) -> total de plazas
     known_pids = set(PRODUCTS)
@@ -95,7 +106,11 @@ def main():
                     line = f"{time.strftime('%H:%M:%S')} {name} {date}: {free}/{mx} libres"
                     print(line, flush=True)
                     report.append(line)
-                    if free > 0 and (old is None or old == 0):
+                    if free > 0:
+                        repeats[key] = repeats.get(key, 0) + 1
+                    else:
+                        repeats[key] = 0
+                    if free > 0 and repeats[key] <= 6:  # repite el aviso unas veces mientras queden plazas
                         notify(f"🎅 ¡HAY PLAZAS! {nice(date)} · {name}", f"{free} plazas libres de {mx}. ¡Corre a reservar!", url, True)
                     elif old is None and date not in ("2026-12-05",):
                         notify(f"📅 Nueva fecha: {nice(date)} · {name}", f"{free}/{mx} plazas.", url, True)
@@ -108,7 +123,6 @@ def main():
                         else:
                             notify(f"Ha salido una tanda (+{mx - prev_max[key]}) · {name}", "Pero ya está agotada. Ahora sabes a qué hora las sacan.", url)
                     prev[key] = free
-                    prev_max[key] = mx
                     prev_max[key] = mx
 
             if loops % 10 == 0:  # la lista de productos, cada ~10 min
