@@ -32,12 +32,12 @@ jobs:
       - name: Run watcher
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHAT_ID: "-5144581869"   # grupo "Bot Verbier"
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC || 'pedro-verbier-208b0367' }}
           INTERVAL_SECONDS: "30"
           TZ: Europe/Madrid
           RUN_FOR_SECONDS: "20400"   # 5h40m
-          TEST_NOTIFY: ${{ github.event.inputs.test_notify == 'true' && '1' || '0' }}
+          TEST_NOTIFY: ${{ (github.event_name == 'push' || github.event.inputs.test_notify == 'true') && '1' || '0' }}
         run: python watcher.py
       - name: Lanzar la siguiente ejecución
         if: ${{ !cancelled() }}
