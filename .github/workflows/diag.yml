@@ -9,10 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: {python-version: "3.12"}
-      - run: ONCE=1 python watcher.py || true
-      - run: cp once_report.txt diag/ || true
+      - run: mkdir -p diag && curl -s "https://ntfy.sh/pedro-verbier-208b0367/json?poll=1&since=all" > diag/ntfy.txt || true
       - run: |
           git config user.name bot && git config user.email bot@users.noreply.github.com
           git add -f diag && git commit -m "diag results" && git push origin HEAD:diag-results --force
