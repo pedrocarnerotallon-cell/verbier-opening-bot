@@ -114,16 +114,13 @@ def main():
                         notify(f"🎅 ¡HAY PLAZAS! {nice(date)} · {name}", f"{free} plazas libres de {mx}. ¡Corre a reservar!", url, True)
                     elif old is None and date not in ("2026-12-05",):
                         notify(f"📅 Nueva fecha: {nice(date)} · {name}", f"{free}/{mx} plazas.", url, True)
+                    # prev_max guarda el máximo visto; los +1/-1 sueltos son cancelaciones, no tandas
                     old_max = prev_max.get(key)
-                    if old_max is not None and mx > old_max and free == 0:
-                        notify(f"⏱️ Salió una tanda y ya se agotó · {name}", f"+{mx - old_max} plazas ({old_max}→{mx}) a las {time.strftime('%H:%M')}. Ya no quedan.", url)
-                    if key in prev_max and mx > prev_max[key]:
-                        if free > 0:
-                            notify(f"🎅 Nueva tanda: +{mx - prev_max[key]} plazas · {name}", f"Quedan {free}. ¡Corre!", url, True)
-                        else:
-                            notify(f"Ha salido una tanda (+{mx - prev_max[key]}) · {name}", "Pero ya está agotada. Ahora sabes a qué hora las sacan.", url)
+                    if old_max is not None and mx - old_max >= 5 and free == 0:
+                        notify(f"⏱️ Salió una tanda y ya se agotó · {name}", f"+{mx - old_max} plazas a las {time.strftime('%H:%M')}. Ya no quedan.", url)
                     prev[key] = free
-                    prev_max[key] = mx
+                    if old_max is None or mx - old_max >= 5:
+                        prev_max[key] = mx
 
             if loops % 10 == 0:  # la lista de productos, cada ~10 min
                 new = opening_products(fetch(SHOP_LIST)) - known_pids
